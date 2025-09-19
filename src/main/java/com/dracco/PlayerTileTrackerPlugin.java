@@ -92,7 +92,8 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		// Keep only the most recent MAX_TRACKED_TILES tiles
 		while (recentTiles.size() > MAX_TRACKED_TILES) {
 			// Remove the oldest tile (first in LinkedHashSet)
-			recentTiles.iterator().remove();
+			WorldPoint oldestTile = recentTiles.iterator().next();
+			recentTiles.remove(oldestTile);
 		}
 	}
 
