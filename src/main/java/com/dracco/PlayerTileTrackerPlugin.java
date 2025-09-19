@@ -27,13 +27,20 @@ public class PlayerTileTrackerPlugin extends Plugin {
 	@Inject
 	private OverlayManager overlayManager;
 
+	@Inject
+	private PlayerTileTrackerTileOverlay playerTileTrackerTileOverlay;
+
 	@Override
 	protected void startUp() throws Exception {
+		overlayManager.add(playerTileTrackerTileOverlay);
+
 		log.info("PlayerTileTracker started!");
 	}
 
 	@Override
 	protected void shutDown() throws Exception {
+		overlayManager.remove(playerTileTrackerTileOverlay);
+
 		log.info("PlayerTileTracker stopped!");
 	}
 
