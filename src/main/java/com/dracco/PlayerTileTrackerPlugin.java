@@ -72,7 +72,7 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		int currentTick = client.getTickCount();
 
 		// Remove expired tiles (tiles older than ITEM_SPAWN_DELAY seconds)
-		removeExpiredTiles(currentTick);
+		removeExpiredTiles();
 
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) {
@@ -120,11 +120,14 @@ public class PlayerTileTrackerPlugin extends Plugin {
 				.collect(Collectors.toSet());
 	}
 
-	private void removeExpiredTiles(int currentTick) {
-		// Remove tiles that have been active longer than MAX_TICKS
+	private void removeExpiredTiles() {
+		// Remove tiles that have been active longer than ITEM_SPAWN_DELAY seconds
+		long maxMillis = ITEM_SPAWN_DELAY * 1000L;
+		long currentTime = System.currentTimeMillis();
+
 		recentTiles.removeIf(entry -> {
-			int elapsedTicks = currentTick - entry.getGameTick();
-			return elapsedTicks >= MAX_TICKS;
+			long elapsedMillis = currentTime - entry.getTimestamp();
+			return elapsedMillis >= maxMillis;
 		});
 	}
 

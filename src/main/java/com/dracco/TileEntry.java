@@ -3,16 +3,18 @@ package com.dracco;
 import net.runelite.api.coords.WorldPoint;
 
 /**
- * Represents a tile entry with its location and the game tick when it was
- * visited
+ * Represents a tile entry with its location, the game tick when it was visited,
+ * and the real-time timestamp for smooth animations
  */
 public class TileEntry {
   private final WorldPoint worldPoint;
   private final int gameTick;
+  private final long timestamp;
 
   public TileEntry(WorldPoint worldPoint, int gameTick) {
     this.worldPoint = worldPoint;
     this.gameTick = gameTick;
+    this.timestamp = System.currentTimeMillis();
   }
 
   public WorldPoint getWorldPoint() {
@@ -21,6 +23,10 @@ public class TileEntry {
 
   public int getGameTick() {
     return gameTick;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
   }
 
   @Override

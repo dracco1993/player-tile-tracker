@@ -36,8 +36,6 @@ public class PlayerTileTrackerTileOverlay extends Overlay {
 
 	@Override
 	public Dimension render(Graphics2D graphics) {
-		int currentTick = client.getTickCount();
-
 		// Render all tracked tiles as red squares with timer globes
 		for (TileEntry entry : plugin.getRecentTileEntries()) {
 			WorldPoint tile = entry.getWorldPoint();
@@ -50,11 +48,12 @@ public class PlayerTileTrackerTileOverlay extends Overlay {
 			if (tilePoly != null) {
 				OverlayUtil.renderPolygon(graphics, tilePoly, Color.RED);
 
-				// Calculate timer progress (5 seconds = ~8.33 ticks, using 8 for simplicity)
-				int elapsedTicks = currentTick - entry.getGameTick();
+				// Calculate timer progress using real time
+				long elapsedMillis = System.currentTimeMillis() - entry.getTimestamp();
+				long maxMillis = plugin.ITEM_SPAWN_DELAY * 1000L;
 
-				if (elapsedTicks < plugin.MAX_TICKS) {
-					renderTimerGlobe(graphics, localPoint, elapsedTicks, plugin.MAX_TICKS);
+				if (elapsedMillis < maxMillis) {
+					renderTimerGlobe(graphics, localPoint, entry);
 				}
 			}
 		}
@@ -62,7 +61,7 @@ public class PlayerTileTrackerTileOverlay extends Overlay {
 		return null;
 	}
 
-	private void renderTimerGlobe(Graphics2D graphics, LocalPoint localPoint, int elapsedTicks, int maxTicks) {
+	private void renderTimerGlobe(Graphics2D graphics, LocalPoint localPoint, TileEntry entry) {
 		Point canvasPoint = Perspective.localToCanvas(client, localPoint, 0);
 		if (canvasPoint == null) {
 			return;
@@ -76,8 +75,10 @@ public class PlayerTileTrackerTileOverlay extends Overlay {
 		// Enable antialiasing for smooth circles
 		graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-		// Calculate progress (0.0 to 1.0)
-		double progress = (double) elapsedTicks / maxTicks;
+		// Calculate progress (0.0 to 1.0) using real time
+		long elapsedMillis = System.currentTimeMillis() - entry.getTimestamp();
+		long maxMillis = plugin.ITEM_SPAWN_DELAY * 1000L;
+		double progress = Math.min(1.0, (double) elapsedMillis / maxMillis);
 
 		// Background circle (gray - empty state)
 		graphics.setColor(new Color(100, 100, 100, 50));
@@ -99,7 +100,7 @@ public class PlayerTileTrackerTileOverlay extends Overlay {
 		graphics.setFont(new Font("Arial", Font.BOLD, 10));
 		FontMetrics fm = graphics.getFontMetrics();
 
-		double remainingSeconds = (maxTicks - elapsedTicks) * 0.6;
+		double remainingSeconds = Math.max(0.0, (maxMillis - elapsedMillis) / 1000.0);
 		String timerText = String.format("%.1f", Math.max(0.0, remainingSeconds));
 		int textWidth = fm.stringWidth(timerText);
 		int textHeight = fm.getHeight();
