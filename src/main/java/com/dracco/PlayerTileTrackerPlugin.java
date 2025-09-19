@@ -2,6 +2,7 @@ package com.dracco;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -26,7 +27,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 public class PlayerTileTrackerPlugin extends Plugin {
 	private static final int MAX_TRACKED_TILES = 10;
 
-	private final Set<WorldPoint> recentTiles = new LinkedHashSet<>();
+	private final Set<TileEntry> recentTiles = new LinkedHashSet<>();
 	private WorldPoint lastPlayerLocation;
 
 	@Inject
@@ -78,27 +79,40 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		// Check if player has moved to a new tile
 		if (!currentLocation.equals(lastPlayerLocation)) {
 			lastPlayerLocation = currentLocation;
-			addTileToTracker(currentLocation);
+			addTileToTracker(currentLocation, client.getTickCount());
+
+			// TODO: remove this debug print later
+			System.out.println("Player moved to: " + currentLocation + " at tick " + client.getTickCount());
 		}
 	}
 
-	private void addTileToTracker(WorldPoint tile) {
-		// Remove the tile if it already exists to avoid duplicates
-		recentTiles.remove(tile);
+	private void addTileToTracker(WorldPoint tile, int gameTick) {
+		TileEntry newEntry = new TileEntry(tile, gameTick);
 
-		// Add the new tile
-		recentTiles.add(tile);
+		// TODO: I don't think we actually need this
+		// since players can walk back onto the same tile
+		// Remove any existing entry with the same WorldPoint to avoid duplicates
+		recentTiles.removeIf(entry -> entry.getWorldPoint().equals(tile));
+
+		// Add the new tile entry
+		recentTiles.add(newEntry);
 
 		// Keep only the most recent MAX_TRACKED_TILES tiles
 		while (recentTiles.size() > MAX_TRACKED_TILES) {
 			// Remove the oldest tile (first in LinkedHashSet)
-			WorldPoint oldestTile = recentTiles.iterator().next();
-			recentTiles.remove(oldestTile);
+			TileEntry oldestEntry = recentTiles.iterator().next();
+			recentTiles.remove(oldestEntry);
 		}
 	}
 
-	public Set<WorldPoint> getRecentTiles() {
+	public Set<TileEntry> getRecentTileEntries() {
 		return recentTiles;
+	}
+
+	public Set<WorldPoint> getRecentTiles() {
+		return recentTiles.stream()
+				.map(TileEntry::getWorldPoint)
+				.collect(Collectors.toSet());
 	}
 
 	@Provides
