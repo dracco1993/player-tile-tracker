@@ -25,7 +25,10 @@ import net.runelite.client.ui.overlay.OverlayManager;
 @Slf4j
 @PluginDescriptor(name = "Player Tile Tracker")
 public class PlayerTileTrackerPlugin extends Plugin {
-	private static final int MAX_TRACKED_TILES = 10;
+	private static final int MAX_TRACKED_TILES = 20;
+	public final int ITEM_SPAWN_DELAY = 60; // Seconds until item spawns on ground
+
+	public final int MAX_TICKS = (int) (ITEM_SPAWN_DELAY / 0.6);
 
 	private final Set<TileEntry> recentTiles = new LinkedHashSet<>();
 	private WorldPoint lastPlayerLocation;
@@ -66,6 +69,11 @@ public class PlayerTileTrackerPlugin extends Plugin {
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick) {
+		int currentTick = client.getTickCount();
+
+		// Remove expired tiles (tiles older than ITEM_SPAWN_DELAY seconds)
+		removeExpiredTiles(currentTick);
+
 		Player localPlayer = client.getLocalPlayer();
 		if (localPlayer == null) {
 			return;
@@ -79,10 +87,7 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		// Check if player has moved to a new tile
 		if (!currentLocation.equals(lastPlayerLocation)) {
 			lastPlayerLocation = currentLocation;
-			addTileToTracker(currentLocation, client.getTickCount());
-
-			// TODO: remove this debug print later
-			System.out.println("Player moved to: " + currentLocation + " at tick " + client.getTickCount());
+			addTileToTracker(currentLocation, currentTick);
 		}
 	}
 
@@ -113,6 +118,14 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		return recentTiles.stream()
 				.map(TileEntry::getWorldPoint)
 				.collect(Collectors.toSet());
+	}
+
+	private void removeExpiredTiles(int currentTick) {
+		// Remove tiles that have been active longer than MAX_TICKS
+		recentTiles.removeIf(entry -> {
+			int elapsedTicks = currentTick - entry.getGameTick();
+			return elapsedTicks >= MAX_TICKS;
+		});
 	}
 
 	@Provides
