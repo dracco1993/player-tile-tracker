@@ -34,6 +34,7 @@ public class PlayerTileTrackerPlugin extends Plugin {
 
 	private final Set<TileEntry> recentTiles = new LinkedHashSet<>();
 	private WorldPoint lastPlayerLocation;
+	private String lastTargetPlayerName;
 
 	@Inject
 	private Client client;
@@ -97,6 +98,16 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		Player targetPlayer;
 		String targetPlayerName = config.targetPlayerName();
 
+		// Check if target player name has changed and reset tiles if it has
+		String normalizedCurrentName = (targetPlayerName == null) ? "" : targetPlayerName.trim();
+		String normalizedLastName = (lastTargetPlayerName == null) ? "" : lastTargetPlayerName.trim();
+
+		if (!normalizedCurrentName.equals(normalizedLastName)) {
+			// Target player name has changed, reset tracked tiles
+			clearTrackedTiles();
+			lastTargetPlayerName = normalizedCurrentName;
+		}
+
 		if (targetPlayerName == null || targetPlayerName.trim().isEmpty()) {
 			// Track local player when no target is specified
 			targetPlayer = client.getLocalPlayer();
@@ -151,6 +162,14 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		return recentTiles.stream()
 				.map(TileEntry::getWorldPoint)
 				.collect(Collectors.toSet());
+	}
+
+	/**
+	 * Clear all tracked tiles and reset player location
+	 */
+	public void clearTrackedTiles() {
+		recentTiles.clear();
+		lastPlayerLocation = null;
 	}
 
 	private void removeExpiredTiles() {
