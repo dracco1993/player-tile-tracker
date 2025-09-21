@@ -20,6 +20,8 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 @Slf4j
@@ -45,18 +47,35 @@ public class PlayerTileTrackerPlugin extends Plugin {
 	@Inject
 	private PlayerTileTrackerTileOverlay playerTileTrackerTileOverlay;
 
+	@Inject
+	private PlayerTileTrackerPanel playerTileTrackerPanel;
+
+	@Inject
+	private ClientToolbar clientToolbar;
+
+	private NavigationButton navButton;
+
 	@Override
 	protected void startUp() throws Exception {
 		overlayManager.add(playerTileTrackerTileOverlay);
 
-		log.info("PlayerTileTracker started!");
+		// Create navigation button for the sidebar
+		navButton = NavigationButton.builder()
+				.tooltip("Player Tile Tracker")
+				.priority(5)
+				.panel(playerTileTrackerPanel)
+				.build();
+
+		clientToolbar.addNavigation(navButton);
 	}
 
 	@Override
 	protected void shutDown() throws Exception {
 		overlayManager.remove(playerTileTrackerTileOverlay);
 
-		log.info("PlayerTileTracker stopped!");
+		if (navButton != null) {
+			clientToolbar.removeNavigation(navButton);
+		}
 	}
 
 	@Subscribe
@@ -75,30 +94,28 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		// Remove expired tiles (tiles older than ITEM_SPAWN_DELAY seconds)
 		removeExpiredTiles();
 
-		// Player localPlayer = client.getLocalPlayer();
-		// if (localPlayer == null) {
-		// return;
-		// }
+		Player targetPlayer;
+		String targetPlayerName = config.targetPlayerName();
 
-		Player localPlayer = client.getPlayers().stream()
-				.filter(p -> p.getName().equalsIgnoreCase(config.targetPlayerName()))
-				.findFirst()
-				.orElse(null);
+		if (targetPlayerName == null || targetPlayerName.trim().isEmpty()) {
+			// Track local player when no target is specified
+			targetPlayer = client.getLocalPlayer();
+		} else {
+			// Track specified player
+			targetPlayer = client.getPlayers().stream()
+					.filter(p -> p.getName() != null && p.getName().equalsIgnoreCase(targetPlayerName.trim()))
+					.findFirst()
+					.orElse(null);
+		}
 
-		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Searching...", null);
-
-		if (localPlayer == null) {
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Not found...", null);
+		if (targetPlayer == null) {
 			return;
 		}
 
-		WorldPoint currentLocation = localPlayer.getWorldLocation();
+		WorldPoint currentLocation = targetPlayer.getWorldLocation();
 		if (currentLocation == null) {
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Location not found...", null);
 			return;
 		}
-
-		System.out.println("Found \"" + localPlayer.getName() + "\" at: " + currentLocation);
 
 		// Check if player has moved to a new tile
 		if (!currentLocation.equals(lastPlayerLocation)) {
