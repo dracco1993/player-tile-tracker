@@ -25,7 +25,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 @Slf4j
 @PluginDescriptor(name = "Player Tile Tracker")
 public class PlayerTileTrackerPlugin extends Plugin {
-	private static final int MAX_TRACKED_TILES = 20;
+	private static final int MAX_TRACKED_TILES = 40;
 	public final int ITEM_SPAWN_DELAY = 60; // Seconds until item spawns on ground
 
 	public final int MAX_TICKS = (int) (ITEM_SPAWN_DELAY / 0.6);
@@ -62,7 +62,8 @@ public class PlayerTileTrackerPlugin extends Plugin {
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged) {
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN) {
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "PlayerTileTracker says hello " + config.targetPlayer(),
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
+					"PlayerTileTracker says hello " + config.targetPlayerName(),
 					null);
 		}
 	}
@@ -74,15 +75,30 @@ public class PlayerTileTrackerPlugin extends Plugin {
 		// Remove expired tiles (tiles older than ITEM_SPAWN_DELAY seconds)
 		removeExpiredTiles();
 
-		Player localPlayer = client.getLocalPlayer();
+		// Player localPlayer = client.getLocalPlayer();
+		// if (localPlayer == null) {
+		// return;
+		// }
+
+		Player localPlayer = client.getPlayers().stream()
+				.filter(p -> p.getName().equalsIgnoreCase(config.targetPlayerName()))
+				.findFirst()
+				.orElse(null);
+
+		client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Searching...", null);
+
 		if (localPlayer == null) {
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Not found...", null);
 			return;
 		}
 
 		WorldPoint currentLocation = localPlayer.getWorldLocation();
 		if (currentLocation == null) {
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Location not found...", null);
 			return;
 		}
+
+		System.out.println("Found \"" + localPlayer.getName() + "\" at: " + currentLocation);
 
 		// Check if player has moved to a new tile
 		if (!currentLocation.equals(lastPlayerLocation)) {
